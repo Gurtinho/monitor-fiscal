@@ -1,80 +1,78 @@
+import threading
 from urllib.parse import urljoin
 import requests
 import json
-import os
 import dotenv
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from pathlib import Path
 import sys
-
-from bs4 import BeautifulSoup
-# from fastapi import FastAPI
-
-sys.stdout.reconfigure(encoding='utf-8')
+import asyncio
 dotenv.load_dotenv()
 
-# app = FastAPI(title="Monitor API")
+from bs4 import BeautifulSoup
+from fastapi import FastAPI
+
+# importa depois do load dotenv
+import links
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+app = FastAPI(title="Monitor API")
+
 
 # ============================================================
-# Constantes
+# Startup do fastapi
 # ============================================================
-INTERVALO = 3600 * 12  # 12 horas
-
-ARQUIVO_CACHE = "documentos_fiscais.json"
-
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-
-URLS_FISCAIS = {
-  # "NFe": os.getenv("NFE_URL"),
-  "CTe": os.getenv("CTE_URL"),
-  # "NFCe": os.getenv("NFCE_URL"),
-  # "MDFe": os.getenv("MDFE_URL"),
-  # "Sped": os.getenv("SPED_URL")
-}
-
-URL_JIRA = os.getenv("JIRA_URL")
+@app.on_event("startup")
+async def startup_event():
+  asyncio.create_task(worker_loop())
 
 
 # ============================================================
 # Rotas
 # ============================================================
-# @app.get("/")
-# def home():
-#   return {"status": "ok", "mensagem": "Monitor API rodando"}
 
-# @app.get("/verificar")
-# def forcar_verificacao():
-#   verificar_atualizacoes()
-#   return {"status": "executado"}
+# Verifica o status
+@app.get("/")
+def home():
+  return {"status": "ok", "mensagem": "Monitor API rodando"}
+
+# Chama novamente pra confirmação de envio
+@app.get("/verificar")
+def forcar_verificacao():
+  verificar_atualizacoes()
+  return {"status": "executado"}
 
 
 # ============================================================
-# Worker paralelo pra rodar sozinho
+# Worker - Função assíncrona de busca
 # ============================================================
-# def worker_loop():
-#     while True:
-#       hoje = datetime.today()
-#       hoje = hoje.replace(tzinfo=timezone.utc)
-#       hoje = hoje.strftime('%d/%m/%Y %H:%M:%S')
-#       print(f"Execução automática do monitor em andamento {hoje}...")
-#       verificar_atualizacoes()
-#       time.sleep(3600 * 12)  # a cada 12 horas
+async def worker_loop():
+  while True:
+    agora = datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M:%S")
+    print(f"[WORKER] Verificação automática {agora}")
 
-# threading.Thread(target=worker_loop, daemon=True).start()
+    try:
+      verificar_atualizacoes()
+    except Exception as e:
+      print(f"[WORKER] Erro: {e}")
 
+    await asyncio.sleep(60 * 60 * 12)  # 12 horas
 
 # ============================================================
 # Cache - Valida se já foi buscado as informações
 # ============================================================
+CAMINHO_CACHE = Path("cache") / links.ARQUIVO_CACHE
+
 def carregar_cache():
-  if os.path.exists(ARQUIVO_CACHE):
-    with open('./cache/' + ARQUIVO_CACHE, "r", encoding="utf-8") as f:
+  if CAMINHO_CACHE.exists():
+    with open(CAMINHO_CACHE, "r", encoding="utf-8") as f:
       return json.load(f)
   return {}
 
 def salvar_cache(dados):
   Path('./cache').mkdir(exist_ok=True) # cria o arquivo caso não exista
-  with open('./cache/' + ARQUIVO_CACHE, "w", encoding="utf-8") as f:
+  with open('./cache/' + links.ARQUIVO_CACHE, "w", encoding="utf-8") as f:
     json.dump(dados, f, indent=2, ensure_ascii=False)
 
 
@@ -82,7 +80,10 @@ def salvar_cache(dados):
 # Busca as notas
 # ============================================================
 def buscar_nfe(url):
-    resp = requests.get(url) # busca a página
+    if url == None: 
+      return
+
+    resp = requests.get(url, timeout=20) # busca a página com timeout de 20 segundos
     soup = BeautifulSoup(resp.text, "html.parser") # converte a árvore de análise sintática
     links = []
 
@@ -95,53 +96,48 @@ def buscar_nfe(url):
           "url": href if href.startswith("http") else f"https://www.nfe.fazenda.gov.br/portal/{href}"
         })
     return links
+
+def buscar_cte(url):
+  if url == None: 
+    return
+
+  resp = requests.get(url, timeout=20) # busca a página com timeout de 20 segundos
+  soup = BeautifulSoup(resp.text, "html.parser") # converte a árvore de análise sintática
+  links = []
+
+  for a in soup.find_all("a", href=True):
+    href = a["href"]
+    texto = a.get_text(strip=True)
+    if "Nota Técnica" in texto or "NT" in texto:
+      links.append({
+        "texto": texto,
+        "url": href if href.startswith("http") else f"https://www.cte.fazenda.gov.br/portal/{href}"
+      })
+  return links
+  
+def buscar_nfce(url):
+  print("nfce")
   
 def buscar_mdfe(url):
   print("mdfe")
   
-def buscar_cte(url):
-    resp = requests.get(url) # busca a página
-    soup = BeautifulSoup(resp.text, "html.parser") # converte a árvore de análise sintática
-    links = []
-
-    for a in soup.find_all("a", href=True):
-      href = a["href"]
-      texto = a.get_text(strip=True)
-      if "Nota Técnica" in texto or "NT" in texto:
-        links.append({
-          "texto": texto,
-          "url": href if href.startswith("http") else f"https://www.cte.fazenda.gov.br/portal/{href}"
-        })
-    return links
   
-def buscar_nfce(url):
-  print("nfe")
-  
-def buscar_sped(url):
-  print("sped")
-  
-def buscar_notas(url):
-  if "NFe" in URLS_FISCAIS:
+# ============================================================
+# Escolhe qual função
+# ============================================================
+def buscar_notas(nome, url):
+  if nome == "NFe":
     return buscar_nfe(url)
-  elif "CTe" in URLS_FISCAIS:
+  elif nome == "CTe":
     return buscar_cte(url)
-  elif "NFCe" in URLS_FISCAIS:
+  elif nome == "NFCe":
     return buscar_nfce(url)
-  elif "MDFe" in URLS_FISCAIS:
+  elif nome == "MDFe":
     return buscar_mdfe(url)
-  elif "Sped" in URLS_FISCAIS:
-    return buscar_sped(url)
-  
-  
-# ============================================================
-# Busca outras atualizações
-# ============================================================
-def buscar_status_jira():
-  print("status jira")
   
 
 # ============================================================
-# Envio para Discord
+# Envio de mensagem
 # ============================================================
 def enviar_discord(nome, novos_links):
   if not novos_links:
@@ -164,15 +160,23 @@ def enviar_discord(nome, novos_links):
   }
 
   try:
-    resp = requests.post(WEBHOOK_URL, json=payload)
+    if links.WEBHOOK_URL == None:
+      return
+
+    resp = requests.post(links.WEBHOOK_URL, json=payload)
     if resp.status_code in (200, 204):
       print("✅ Embed enviado ao Discord!")
     else:
       print(f"⚠️ Erro {resp.status_code}: {resp.text}")
   except Exception as e:
     print(f"❌ Falha ao enviar embed: {e}")
+    
 
-        
+def enviar_email(nome, novos_links):
+  if not novos_links:
+    return
+
+
 # ============================================================
 # Verificação
 # ============================================================
@@ -181,9 +185,13 @@ def verificar_atualizacoes():
   novos = []
 
   # Atualizações fiscais
-  for nome, url in URLS_FISCAIS.items():
-    print(f"🔍 Verificando {nome}...")
-    encontrados = buscar_notas(url)
+  if links.URLS_FISCAIS == None:
+    return
+
+  for nome, url in links.URLS_FISCAIS.items():
+    
+    encontrados = buscar_notas(nome, url)
+    
     if not encontrados:
       print(f"Nenhuma nota técnica encontrada em {nome}.")
       continue
@@ -198,19 +206,13 @@ def verificar_atualizacoes():
       cache[nome] = antigos + novos_links
       salvar_cache(cache)
       enviar_discord(nome, novos_links)
-    else:
-      print(f"Nenhuma nova nota técnica encontrada em {nome}.")
+      
+    # Buscar serviços em manutenção
+    # ...
 
-
-# ============================================================
-# Tray
-# ============================================================
-def loop_monitoramento():
-  verificar_atualizacoes()
-  
   
 # ============================================================
 # Função main principal
 # ============================================================
 if __name__ == "__main__":
-  loop_monitoramento()
+  verificar_atualizacoes()
