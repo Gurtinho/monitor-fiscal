@@ -3,4 +3,5 @@
 .vscode
 cache
 venv
+.venv
 __pycache__/
