@@ -61,10 +61,18 @@ class Documentos(commands.Cog):
         view = discord.ui.View()
 
         view.add_item(selections)
+
+        embed_message = discord.Embed(
+            title=f'Documentos Fiscais',
+            description='Selecione uma opção para buscar os documentos fiscais',
+            color=discord.Color.blue(),
+            timestamp=discord.utils.utcnow()
+        )
+
         if isinstance(ctx_or_interaction, discord.Interaction):
-            await ctx_or_interaction.response.send_message(view=view)
+            await ctx_or_interaction.response.send_message(embed=embed_message, view=view)
         else:
-            await ctx_or_interaction.send(view=view)
+            await ctx_or_interaction.send(embed=embed_message, view=view)
     
     @commands.command(name='documentos', description='Busca documentos fiscais')
     async def documentos_prefix(self, ctx: commands.Context):
