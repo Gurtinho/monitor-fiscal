@@ -8,7 +8,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia o conteúdo da pasta src para dentro de /app
 COPY . .
 
 # Comando para rodar o bot

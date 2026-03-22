@@ -34,8 +34,8 @@ services:
       - .env
     environment:
       - MONGO_URL=mongodb://root:sa1234@mongodb:27017/
-    volumes:
-      - .:/app
+    # volumes:
+    #   - .:/app
 
 volumes:
   mongo_data:

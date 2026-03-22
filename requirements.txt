@@ -10,14 +10,17 @@ bs4==0.0.2
 certifi==2025.10.5
 charset-normalizer==3.4.4
 discord.py==2.7.1
+dnspython==2.8.0
 dotenv==0.9.9
 fastapi==0.131.0
 frozenlist==1.8.0
 idna==3.11
+motor==3.7.1
 multidict==6.7.1
 propcache==0.4.1
 pydantic==2.12.5
 pydantic_core==2.41.5
+pymongo==4.16.0
 python-dotenv==1.2.1
 requests==2.32.5
 soupsieve==2.8

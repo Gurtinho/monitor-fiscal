@@ -7,23 +7,15 @@ from anyio import Path
 # ============================================================
 INTERVALO = 3600 * 12  # 12 horas
 
-ARQUIVO_CACHE = "documentos_fiscais.json"
-
-GIST_DESCRIPTION = 'An example file upload via Python'
-
-PUBLIC = True
-
-CAMINHO_CACHE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache")
-
-GITHUB_PAT = os.getenv("GITHUB_PAT")
-
+# Links dos portais nacionais
 URLS_FISCAIS = {
-    "NFe": "https://www.nfe.fazenda.gov.br/portal/principal.aspx/",
-    "MDFe": "https://dfe-portal.svrs.rs.gov.br/Mdfe/Documentos/",
-    "CTe": "https://www.cte.fazenda.gov.br/portal/",
-    "NFCe": "https://www.nfe.fazenda.gov.br/portal/principal.aspx/"
+    "NFe": "https://www.nfe.fazenda.gov.br/portal/principal.aspx",
+    "MDFe": "https://dfe-portal.svrs.rs.gov.br/Mdfe/Documentos",
+    "CTe": "https://www.cte.fazenda.gov.br/portal",
+    "NFCe": "https://www.nfe.fazenda.gov.br/portal/principal.aspx"
 }
 
+# Links dos portais estaduais
 PORTAIS_FISCAIS_UF = {
     "AC": {
         "NFCe": "https://www.sefaz.ac.gov.br/nfce",

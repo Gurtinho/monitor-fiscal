@@ -23,8 +23,12 @@ class Documentos(commands.Cog):
                 timestamp=discord.utils.utcnow()
             )
 
-            for i in valor:
-                embed_message.add_field(name=i['texto'], value=i['url'], inline=False)
+            if valor:
+                for i in valor:
+                    embed_message.add_field(name=i['texto'], inline=False)
+            else:
+                embed_message.add_field(name='Aviso', value='Nenhum documento encontrado!', inline=False)
+                embed_message.add_field(name='Status', value='Pode ficar suave e tomar seu café ☕', inline=False)
 
             # Configuração da view de resposta
             view_resultado = discord.ui.View()

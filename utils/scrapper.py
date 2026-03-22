@@ -3,18 +3,12 @@ from bs4 import BeautifulSoup
 import requests
 import json
 from config import links
-from utils.upload import create_gist_from_file
-from utils.send import enviar_discord
-from config.cache import Cache
-
 
 # ============================================================
 # Verificação
 # ============================================================
 # Busca de forma automática com event
 async def verificar_atualizacoes():
-    cache = Cache(links.CAMINHO_CACHE)
-
     novos = []
 
     # Atualizações fiscais
@@ -28,29 +22,19 @@ async def verificar_atualizacoes():
             print(f"Nenhuma nota técnica encontrada em {nome}.")
             continue
 
-        antigos = cache.get(nome, [])
-        urls_antigas = {x["url"] for x in antigos}
+        urls_antigas = {x["url"] for x in encontrados}
         novos_links = [x for x in encontrados if x["url"] not in urls_antigas]
 
         if novos_links:
             print(f"🚨 {len(novos_links)} novas NTs em {nome}")
             novos.extend(novos_links)
-            cache[nome] = antigos + novos_links
-            cache.salvar_cache()
-            enviar_discord(nome, novos_links)
-            
-        # Buscar serviços em manutenção
-        # ...
-
-    upload.create_gist_from_file(os.path.join(links.CAMINHO_CACHE, links.ARQUIVO_CACHE), links.GIST_DESCRIPTION, links.PUBLIC, links.GITHUB_PAT)
-
 
 
 # ============================================================
 # Busca as notas
 # ============================================================
 def buscar_nfe(url):
-    if url == None: 
+    if url == None:
         return
 
     resp = requests.get(url, timeout=20) # busca a página com timeout de 20 segundos
