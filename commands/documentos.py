@@ -4,6 +4,7 @@ from discord import app_commands
 
 from utils import scrapper
 from config import links
+from utils import download
 
 class Documentos(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -15,17 +16,20 @@ class Documentos(commands.Cog):
         # Função que roda quando o usuário seleciona uma opção
         async def select_callback(interaction: discord.Interaction):
             choice = interaction.data['values'][0]
-            valor = scrapper.buscar_notas(choice, links.URLS_FISCAIS[choice])
+            notas = scrapper.buscar_notas(choice)
+
+            quantidade_notas = len(notas['documentos'])
 
             embed_message = discord.Embed(
                 title=f'Documentos Fiscais - {choice}',
+                description=f'Quantidade de documentos encontrados: {quantidade_notas}',
                 color=discord.Color.blue(),
                 timestamp=discord.utils.utcnow()
             )
 
-            if valor:
-                for i in valor:
-                    embed_message.add_field(name=i['texto'], inline=False)
+            if notas['documentos']:
+                for i in notas['documentos']:
+                    embed_message.add_field(name=i['texto'], value=i['url'], inline=False)
             else:
                 embed_message.add_field(name='Aviso', value='Nenhum documento encontrado!', inline=False)
                 embed_message.add_field(name='Status', value='Pode ficar suave e tomar seu café ☕', inline=False)
@@ -33,24 +37,22 @@ class Documentos(commands.Cog):
             # Configuração da view de resposta
             view_resultado = discord.ui.View()
 
-            # Botão de Callback
-            async def download_callback(interaction: discord.Interaction):
-                await interaction.response.send_message("Preparando download...", ephemeral=True)
-                import io
-                buffer = io.StringIO(str(valor))
-                file = discord.File(fp=buffer, filename=f"documentos_{choice}.txt")
-                await interaction.followup.send(file=file, ephemeral=True)
+            # Botão de download dos arquivos
+            async def download_callback(btn_interaction: discord.Interaction):
+                await btn_interaction.response.send_message("📦 Preparando pacotinho ZIP...", ephemeral=True)
+                file = download.zipar(notas['documentos'], choice)
+                await btn_interaction.followup.send(content="Aqui estão os arquivos:", file=file, ephemeral=True)
 
             btn_download = discord.ui.Button(label='Baixar Documentos', style=discord.ButtonStyle.success)
             btn_download.callback = download_callback
             
-            # Botão de Link
-            btn_link = discord.ui.Button(label='Ir para Portal', style=discord.ButtonStyle.link, url=links.URLS_FISCAIS[choice])
+            # Botão de link
+            btn_link = discord.ui.Button(label='Ir para Portal', style=discord.ButtonStyle.link, url=notas['url_portal'])
 
             view_resultado.add_item(btn_download)
             view_resultado.add_item(btn_link)
 
-            await interaction.response.send_message(embed=embed_message, view=view_resultado)
+            await interaction.response.edit_message(embed=embed_message, view=view_resultado)
         
         selections = discord.ui.Select(placeholder='Selecione uma opção')
         options = [

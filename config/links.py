@@ -1,17 +1,14 @@
 import os
 
-from anyio import Path
-
 # ============================================================
 # Constantes
 # ============================================================
 INTERVALO = 3600 * 12  # 12 horas
 
 # Links dos portais nacionais
-URLS_FISCAIS = {
-    "NFe": "https://www.nfe.fazenda.gov.br/portal/principal.aspx",
+URLS_NOTAS_TECNICAS = {
     "MDFe": "https://dfe-portal.svrs.rs.gov.br/Mdfe/Documentos",
-    "CTe": "https://www.cte.fazenda.gov.br/portal",
+    "CTe": "https://www.cte.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=Y0nErnoZpsg=",
     "NFCe": "https://www.nfe.fazenda.gov.br/portal/principal.aspx"
 }
 

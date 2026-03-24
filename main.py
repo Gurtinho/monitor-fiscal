@@ -42,10 +42,12 @@ def main():
             await bot.tree.sync(guild=guild)
         else:
             await bot.tree.sync()
-
-        print('Bot online!')
-        print(f'Comandos carregados: {commands}')
-        print(f'Eventos carregados: {events}')
+        
+        CHANNEL_ID = os.getenv('CHANNEL_ID')
+        if CHANNEL_ID:
+            channel = bot.get_channel(int(CHANNEL_ID)) # Busca o canal pelo ID
+            if channel:
+                await channel.send(f"🚀 **Bot Online!**\n📦 Comandos: {commands}\n🔔 Eventos: {events}")
 
 
     bot.run(TOKEN)

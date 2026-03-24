@@ -2,6 +2,8 @@ import os
 from bs4 import BeautifulSoup
 import requests
 import json
+import re
+
 from config import links
 
 # ============================================================
@@ -12,10 +14,10 @@ async def verificar_atualizacoes():
     novos = []
 
     # Atualizações fiscais
-    if links.URLS_FISCAIS == None:
+    if links.URLS_NOTAS_TECNICAS == None:
         return
 
-    for nome, url in links.URLS_FISCAIS.items():
+    for nome, url in links.URLS_NOTAS_TECNICAS.items():
         encontrados = buscar_notas(nome, url)
 
         if not encontrados:
@@ -33,55 +35,71 @@ async def verificar_atualizacoes():
 # ============================================================
 # Busca as notas
 # ============================================================
-def buscar_nfe(url):
-    if url == None:
-        return
+def buscar_nfe():
+    # tenta acessar a página de informes na home
+    headers = {"User-Agent": "Mozilla/5.0"}
+    base_url = "https://www.nfe.fazenda.gov.br/portal/"
 
-    resp = requests.get(url, timeout=20) # busca a página com timeout de 20 segundos
-    soup = BeautifulSoup(resp.text, "html.parser") # converte a árvore de análise sintática
-    links = []
-
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        texto = a.get_text(strip=True)
-        if "Nota Técnica" in texto or "NT" in texto:
-            links.append({
-                "texto": texto,
-                "url": href if href.startswith("http") else f"https://www.nfe.fazenda.gov.br/portal/{href}"
-            })
-    return links
-
-def buscar_cte(url):
-    if url == None: 
-        return
-
-    resp = requests.get(url, timeout=20) # busca a página com timeout de 20 segundos
-    soup = BeautifulSoup(resp.text, "html.parser") # converte a árvore de análise sintática
-    links = []
-
-    for a in soup.find_all("a", href=True):
-      href = a["href"]
-      texto = a.get_text(strip=True)
-      if "Nota Técnica" in texto or "NT" in texto:
-        links.append({
-          "texto": texto,
-          "url": href if href.startswith("http") else f"https://www.cte.fazenda.gov.br/portal/{href}"
-        })
-    return links
-
-def buscar_nfce(url):
-    return "nfce"
+    link_home = f"{base_url}principal.aspx"
+    res_home = requests.get(link_home, headers=headers)
+    soup_home = BeautifulSoup(res_home.text, "html.parser")
     
-def buscar_mdfe(url):
-    return "mdfe"
+    codigos_informes = set()
+    count = 0
+    for item in soup_home.find_all("a"):
+        if count == 5:
+            break
+        texto = item.get_text(strip=True)
+        match = re.search(r"\d{4}\.\d{3}", texto)
+        if match:
+            codigos_informes.add(match.group(0))
+            count += 1
+
+    # tenta acessar a página de notas técnicas
+    link_lista = f"{base_url}listaConteudo.aspx?tipoConteudo=04BIflQt1aY="
+    res_lista = requests.get(link_lista, headers=headers)
+    soup_lista = BeautifulSoup(res_lista.text, "html.parser")
+
+    nts = {
+        "url_portal": base_url,
+        "documentos": []
+    }
+    count = 0
+
+    divNormal = soup_lista.find("div", class_="indentacaoNormal")
+    for p in divNormal.find_all("p"):
+        a = p.find("a", href=True)
+        if a:
+            p = a.find("span", class_="tituloConteudo")
+            href = a["href"].strip()
+
+            match = re.search(r"\d{4}\.\d{3}", p.get_text(strip=True))
+            if match:
+                codigo = match.group(0)
+                if codigo in codigos_informes:
+                    nts['documentos'].append({
+                        "texto": p.get_text(strip=True),
+                        "url": f"{base_url}{href}" if a else None
+                    })
+
+    return nts
+
+def buscar_cte():
+    return "Ainda não foi implementado, aguarde um pouco mais...☕"
+
+def buscar_nfce():
+    return "Ainda não foi implementado, aguarde um pouco mais...☕"
+    
+def buscar_mdfe():
+    return "Ainda não foi implementado, aguarde um pouco mais...☕"
 
 
 # ============================================================
 # Escolhe qual função
 # ============================================================
-def buscar_notas(nome, url):
+def buscar_notas(nome):
     if nome == "NFe":
-        return buscar_nfe(url)
+        return buscar_nfe()
     elif nome == "CTe":
         return buscar_cte(url)
     elif nome == "NFCe":
