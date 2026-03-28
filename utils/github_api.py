@@ -2,6 +2,7 @@ from github import Github
 import re
 import os
 import io
+import uuid
 
 # Conecta ao GitHub
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -12,18 +13,18 @@ repo = g.get_repo(REPOSITORIO)
 def analisar_fontes(choice=None):
     match choice:
         case "NFe":
-            files = repo.get_contents("src/Libs/nfephp/libs/NFe/MakeNFePHP.class.php")
+            file = repo.get_contents("src/Libs/nfephp/libs/NFe/MakeNFePHP.class.php")
         case "CTe":
-            files = repo.get_contents("src/Libs/nfephp/libs/CTe/MakeCTeNFePHP.class.php")
+            file = repo.get_contents("src/Libs/nfephp/libs/CTe/MakeCTeNFePHP.class.php")
         case "MDFe":
-            files = repo.get_contents("src/Libs/nfephp/libs/MDFe/MakeMDFeNFePHP.class.php")
+            file = repo.get_contents("src/Libs/nfephp/libs/MDFe/MakeMDFeNFePHP.class.php")
         case "NFCe":
-            files = repo.get_contents("src/Libs/nfephp/libs/NFe/MakeNFePHP.class.php")
+            file = repo.get_contents("src/Libs/nfephp/libs/NFe/MakeNFePHP.class.php")
         case "NFSe":
-            files = repo.get_contents("src/Libs/nfephp/libs/NFSe/NFSeSP.class.php")
+            file = repo.get_contents("src/Libs/nfephp/libs/NFSe/NFSeSP.class.php")
     
-    if files:
-        extrair_e_salvar_fontes(files)
+    if file:
+        return extrair_e_salvar_fontes(file)
 
 def extrair_e_salvar_fontes(conteudo_arquivo, pasta_destino=".temp"):
     """

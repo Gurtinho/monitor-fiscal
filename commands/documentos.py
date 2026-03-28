@@ -9,6 +9,7 @@ from config import links
 from utils import scrapper
 from utils import download
 from utils import ai_api
+from utils import github_api
 from utils import chunks
 
 class Documentos(commands.Cog):
@@ -22,6 +23,11 @@ class Documentos(commands.Cog):
         async def select_callback(interaction: discord.Interaction):
             choice = interaction.data['values'][0]
             notas = scrapper.buscar_notas(choice)
+
+            # Verificar e retornar o texto
+            if isinstance(notas, str):
+                await interaction.response.send_message(notas, ephemeral=True)
+                return
 
             quantidade_notas = len(notas['documentos'])
 
@@ -77,11 +83,43 @@ class Documentos(commands.Cog):
                         await download.deletar_arquivo_local(arquivo)
 
             async def analisar_fontes_callback(btn_interaction: discord.Interaction):
-                await btn_interaction.response.send_message("HEHEHE, ainda não implementei essa função 😅", ephemeral=True)
+                await btn_interaction.response.send_message("🔍 Estou analisando os documentos, aguarde...", ephemeral=True)
+                arquivos = []
+                for nota in notas['documentos']:
+                    arquivo = await download.salvar_arquivo_local(nota['url'])
+                    if arquivo:
+                        arquivos.append(arquivo)
+
+                
+                # Baixa o código fonte do arquivo atual
+                fonte = github_api.analisar_fontes(choice)
+                arquivos.append(fonte)
+
+                prompt_texto_fonte = prompt_texto + "\n\n Analise o código fonte do arquivo e me diga quais são as alterações que foram feitas."
+
+                try: 
+                    if arquivos:
+                        resultado = await ai_api.analisar(prompt_texto, arquivos)
+                        blocos = chunks.dividir_texto(resultado)
+
+                        await btn_interaction.delete_original_response()
+
+                        for i, bloco in enumerate(blocos):
+                            await btn_interaction.followup.send(content=bloco, ephemeral=True)
+                            if i < len(blocos) - 1:
+                                await asyncio.sleep(2)
+                    else:
+                        await btn_interaction.followup.send(content="Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥", ephemeral=True)
+                except Exception as e:
+                    await btn_interaction.followup.send(content=f"Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥 {e}", ephemeral=True)
+                finally:
+                    # Por fim remove os arquivos locais
+                    for arquivo in arquivos:
+                        await download.deletar_arquivo_local(arquivo)
 
             # Botão de análise de arquivos
             prompt_texto = """
-                Você é um Analista Fiscal Sênior e Contador especializado em SPED, NF-e, CT-e e MDF-e. 
+                Você é um Analista Fiscal Sênior e Contador especializado em SPED, NF-e, CT-e e MDF-e.
                 Sua missão é analisar o PDF da Nota Técnica (NT) fornecida e extrair as alterações de layout e regras de validação.
                 Porém, sua resposta deve conter só o que for relevante, não responda oque você faz como etc, só responda com o que foi pedido.
 
@@ -112,15 +150,16 @@ class Documentos(commands.Cog):
                 - Use obrigatoriamente as crases triplas (''') para blocos de código XML para que fiquem visíveis no Discord.
                 - Mantenha a resposta total abaixo de 1800 caracteres para não quebrar o limite do chat.
             """
+
+            # Botão de download dos arquivos
+            btn_download = discord.ui.Button(label='Baixar Documentos', style=discord.ButtonStyle.success, emoji='📦')
+            btn_download.callback = download_callback
+
             btn_analise = discord.ui.Button(label='Analisar Documentos', style=discord.ButtonStyle.blurple, emoji='🔍')
             btn_analise.callback = analisar_callback
 
             btn_analise_fontes = discord.ui.Button(label='Analisar Documentos e Fontes', style=discord.ButtonStyle.red, emoji='🔍')
             btn_analise_fontes.callback = analisar_fontes_callback
-
-            # Botão de download dos arquivos
-            btn_download = discord.ui.Button(label='Baixar Documentos', style=discord.ButtonStyle.success, emoji='📦')
-            btn_download.callback = download_callback
             
             # Botão de link
             btn_link = discord.ui.Button(label='Ir para Portal', style=discord.ButtonStyle.link, url=notas['url_portal'], emoji='🔗')

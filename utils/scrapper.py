@@ -86,16 +86,16 @@ def buscar_nfe():
     return nts
 
 def buscar_cte():
-    return "Ainda não foi implementado, aguarde um pouco mais...☕"
+    return "Ainda não foi implementado, aguarde um pouco mais... ☕"
 
 def buscar_nfce():
-    return "Ainda não foi implementado, aguarde um pouco mais...☕"
+    return "Ainda não foi implementado, aguarde um pouco mais... ☕"
     
 def buscar_mdfe():
-    return "Ainda não foi implementado, aguarde um pouco mais...☕"
+    return "Ainda não foi implementado, aguarde um pouco mais... ☕"
 
 def buscar_nfse():
-    return "Ainda não foi implementado, aguarde um pouco mais...☕"
+    return "Ainda não foi implementado, aguarde um pouco mais... ☕"
 
 
 # ============================================================
