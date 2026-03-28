@@ -47,7 +47,7 @@ def main():
         if CHANNEL_ID:
             channel = bot.get_channel(int(CHANNEL_ID)) # Busca o canal pelo ID
             if channel:
-                await channel.send(f"🚀 **Bot Online!**\n📦 Comandos: {commands}\n🔔 Eventos: {events}")
+                await channel.send(f"🚀 **Estou pronto pra te ajudar!**\n📦 Comandos: {commands}\n🔔 Eventos: {events}")
 
 
     bot.run(TOKEN)

@@ -77,9 +77,10 @@ def buscar_nfe():
             if match:
                 codigo = match.group(0)
                 if codigo in codigos_informes:
+                    url = f"{base_url}{href}" if a else None
                     nts['documentos'].append({
                         "texto": p.get_text(strip=True),
-                        "url": f"{base_url}{href}" if a else None
+                        "url": url
                     })
 
     return nts
@@ -93,6 +94,9 @@ def buscar_nfce():
 def buscar_mdfe():
     return "Ainda não foi implementado, aguarde um pouco mais...☕"
 
+def buscar_nfse():
+    return "Ainda não foi implementado, aguarde um pouco mais...☕"
+
 
 # ============================================================
 # Escolhe qual função
@@ -101,8 +105,10 @@ def buscar_notas(nome):
     if nome == "NFe":
         return buscar_nfe()
     elif nome == "CTe":
-        return buscar_cte(url)
+        return buscar_cte()
     elif nome == "NFCe":
-        return buscar_nfce(url)
+        return buscar_nfce()
     elif nome == "MDFe":
-        return buscar_mdfe(url)
+        return buscar_mdfe()
+    elif nome == "NFSe":
+        return buscar_nfse()

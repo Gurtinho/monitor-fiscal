@@ -19,7 +19,6 @@ class Meme(commands.Cog):
         meme_url = response['url']
         return meme_url
 
-
     @commands.command(name='meme', description='Envia um meme aleatório')
     async def documentos_prefix(self, ctx: commands.Context):
         value = await self.buscar_meme()

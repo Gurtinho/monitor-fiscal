@@ -24,18 +24,18 @@ services:
   #   depends_on:
   #     - mongodb
 
-  bot:
-    build: .
-    container_name: discord_bot
-    restart: always
-    depends_on:
-      - mongodb
-    env_file:
-      - .env
-    environment:
-      - MONGO_URL=mongodb://root:sa1234@mongodb:27017/
-    # volumes:
-    #   - .:/app
+  # bot:
+  #   build: .
+  #   container_name: discord_bot
+  #   restart: always
+  #   depends_on:
+  #     - mongodb
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - MONGO_URL=mongodb://root:sa1234@mongodb:27017/
+  #   # volumes:
+  #   #   - .:/app
 
 volumes:
   mongo_data:
