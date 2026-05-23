@@ -1,56 +1,84 @@
 import discord
+import asyncio
+import uvicorn
 import dotenv
 import os
 from bot import ModBot
+from fastapi import FastAPI
 
-def main():
-    # Carregamento de env
-    dotenv.load_dotenv()
-    TOKEN = os.getenv('DISCORD_TOKEN')
-    GUILD_ID = os.getenv('SERVER_ID')
-    ENVIRONMENT = os.getenv('ENVIRONMENT')
+bot = ModBot()
+app = FastAPI()
 
-    bot = ModBot()
+dotenv.load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+GUILD_ID = os.getenv('SERVER_ID')
+ENVIRONMENT = os.getenv('ENVIRONMENT')
 
-    # Carrega os módulos
-    async def load_extensions():
-        commands: int = 0
-        events: int = 0
+async def load_extensions():
+    commands, events = 0, 0
+    if os.path.exists('commands'):
+        for command in os.listdir('commands'):
+            if command.endswith('.py'):
+                commands += 1
+                await bot.load_extension(f'commands.{command[:-3]}')
 
-        if os.path.exists('commands'):
-            for command in os.listdir('commands'):
-                if command.endswith('.py'): # Carrega somente arquivos python
-                    commands += 1
-                    await bot.load_extension(f'commands.{command[:-3]}') # Pegando arquivo sem a extensão
+    if os.path.exists('events'):
+        for event in os.listdir('events'):
+            if event.endswith('.py'):
+                events += 1
+                await bot.load_extension(f'events.{event[:-3]}')
+    return commands, events
 
-        if os.path.exists('events'):
-            for event in os.listdir('events'):
-                if event.endswith('.py'): # Carrega somente arquivos python
-                    events += 1
-                    await bot.load_extension(f'events.{event[:-3]}') # Pegando arquivo sem a extensão
-            
-        return commands, events
+@bot.event
+async def on_ready():
+    if GUILD_ID and ENVIRONMENT == "dev":
+        guild = discord.Object(id=int(GUILD_ID))
+        bot.tree.copy_global_to(guild=guild)
+        await bot.tree.sync(guild=guild)
+    else:
+        await bot.tree.sync()
+    
+    print(f"🚀 {bot.user} is online and ready!")
 
-    # Evento principal
-    @bot.event
-    async def on_ready():
-        commands, events = await load_extensions()
+# rotas da api
+@app.get("/healthcheck")
+async def healthcheck():
+    return {"status": "online", "bot": str(bot.user)}
 
-        if GUILD_ID and ENVIRONMENT == "dev":
-            guild = discord.Object(id=GUILD_ID)
-            bot.tree.copy_global_to(guild=guild)
-            await bot.tree.sync(guild=guild)
-        else:
-            await bot.tree.sync()
-        
-        CHANNEL_ID = os.getenv('CHANNEL_ID')
-        if CHANNEL_ID:
-            channel = bot.get_channel(int(CHANNEL_ID)) # Busca o canal pelo ID
-            if channel:
-                await channel.send(f"🚀 **Estou pronto pra te ajudar!**\n📦 Comandos: {commands}\n🔔 Eventos: {events}")
+@app.get("/status")
+async def status():
+    return {"status": "online", "bot": str(bot.user), "commands": len(bot.commands), "events": len(bot.events)}
 
+@app.get("/commands")
+async def commands():
+    return {"commands": [command.name for command in bot.commands]}
 
-    bot.run(TOKEN)
+@app.get("/events")
+async def events():
+    return {"events": [event.name for event in bot.events]}
+
+@app.get("/guilds")
+async def guilds():
+    return {"guilds": [guild.name for guild in bot.guilds]}
+
+async def main():
+    # Carregar tudo primeiro
+    commands, events = await load_extensions()
+    print(f"Loaded {commands} commands and {events} events.")
+
+    # API do bot
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000, loop="asyncio")
+    server = uvicorn.Server(config)
+
+    # Startando tudo
+    await asyncio.gather(
+        server.serve(),
+        bot.start(TOKEN) 
+    )
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # Prevents messy errors when you press Ctrl+C
+        pass

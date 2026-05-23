@@ -8,7 +8,7 @@ import base64
 import utils.log as log
 from utils.pdf_validate import pdf_tem_paginas
 
-# Define o limite: 7 requisições a cada 60 segundos
+# Define o limite: 7 requisições a cada 60 segundos por usuário
 limiter = AsyncLimiter(7, 60)
 
 async def analisar(prompt_texto, arquivos=None):

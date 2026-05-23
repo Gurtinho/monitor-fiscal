@@ -26,7 +26,7 @@ class Documentos(commands.Cog):
 
             # Verificar e retornar o texto
             if isinstance(notas, str):
-                await interaction.response.send_message(notas, ephemeral=True)
+                await interaction.response.send_message(notas)
                 return
 
             quantidade_notas = len(notas['documentos'])
@@ -42,7 +42,7 @@ class Documentos(commands.Cog):
                 for i in notas['documentos']:
                     embed_message.add_field(name=i['texto'], value=i['url'].replace(" ", ""), inline=False)
             else:
-                embed_message.add_field(name='Aviso', value='Nenhum documento encontrado!', inline=False)
+                embed_message.add_field(name='Aviso', value='Nenhum documento foi encontrado!', inline=False)
                 embed_message.add_field(name='Status', value='Pode ficar suave e tomar seu café ☕', inline=False)
 
             # Configuração da view de resposta
@@ -50,13 +50,13 @@ class Documentos(commands.Cog):
 
             # Botão de download dos arquivos
             async def download_callback(btn_interaction: discord.Interaction):
-                await btn_interaction.response.send_message("📦 Estou preparando o pacotinho ZIP, aguarde...", ephemeral=True)
+                await btn_interaction.response.send_message("📦 Estou preparando o pacote com os documentos fiscais, aguarde...")
                 file = await download.zipar(notas['documentos'], choice)
-                await btn_interaction.followup.send(content="📦 Aqui está seu pacotinho ZIP:", file=file, ephemeral=True)
+                await btn_interaction.followup.send(content="📦 Aqui está seu pacote zipado com os documentos fiscais:", file=file)
                 await btn_interaction.delete_original_response()
 
             async def analisar_callback(btn_interaction: discord.Interaction):
-                await btn_interaction.response.send_message("🔍 Estou analisando os documentos, aguarde...", ephemeral=True)
+                await btn_interaction.response.send_message("🔍 Estou analisando os documentos, aguarde...")
                 arquivos = []
                 for nota in notas['documentos']:
                     arquivo = await download.salvar_arquivo_local(nota['url'])
@@ -70,20 +70,20 @@ class Documentos(commands.Cog):
                         await btn_interaction.delete_original_response()
 
                         for i, bloco in enumerate(blocos):
-                            await btn_interaction.followup.send(content=bloco, ephemeral=True)
+                            await btn_interaction.followup.send(content=bloco)
                             if i < len(blocos) - 1:
                                 await asyncio.sleep(2)
                     else:
-                        await btn_interaction.followup.send(content="Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥", ephemeral=True)
+                        await btn_interaction.followup.send(content="Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥")
                 except Exception as e:
-                    await btn_interaction.followup.send(content=f"Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥 {e}", ephemeral=True)
+                    await btn_interaction.followup.send(content=f"Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥 {e}")
                 finally:
                     # Por fim remove os arquivos locais
                     for arquivo in arquivos:
                         await download.deletar_arquivo_local(arquivo)
 
             async def analisar_fontes_callback(btn_interaction: discord.Interaction):
-                await btn_interaction.response.send_message("🔍 Estou analisando os documentos, aguarde...", ephemeral=True)
+                await btn_interaction.response.send_message("🔍 Estou analisando os documentos, aguarde...")
                 arquivos = []
                 for nota in notas['documentos']:
                     arquivo = await download.salvar_arquivo_local(nota['url'])
@@ -105,13 +105,13 @@ class Documentos(commands.Cog):
                         await btn_interaction.delete_original_response()
 
                         for i, bloco in enumerate(blocos):
-                            await btn_interaction.followup.send(content=bloco, ephemeral=True)
+                            await btn_interaction.followup.send(content=bloco)
                             if i < len(blocos) - 1:
                                 await asyncio.sleep(2)
                     else:
-                        await btn_interaction.followup.send(content="Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥", ephemeral=True)
+                        await btn_interaction.followup.send(content="Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥")
                 except Exception as e:
-                    await btn_interaction.followup.send(content=f"Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥 {e}", ephemeral=True)
+                    await btn_interaction.followup.send(content=f"Aconteceu alguma coisa e não consegui baixar e nem analisar seus arquivos 😥 {e}")
                 finally:
                     # Por fim remove os arquivos locais
                     for arquivo in arquivos:
@@ -119,36 +119,21 @@ class Documentos(commands.Cog):
 
             # Botão de análise de arquivos
             prompt_texto = """
-                Você é um Analista Fiscal Sênior e Contador especializado em SPED, NF-e, CT-e e MDF-e.
-                Sua missão é analisar o PDF da Nota Técnica (NT) fornecida e extrair as alterações de layout e regras de validação.
-                Porém, sua resposta deve conter só o que for relevante, não responda oque você faz como etc, só responda com o que foi pedido.
+                Atue como Especialista Fiscal de software (NF-e/CT-e/SPED). Extraia do PDF da NT apenas alterações de layout e validações. 
+                
+                REGRAS: 
+                1. PROIBIDO: Saudações, introduções, conclusões, textos jurídicos ou explicações de contexto.
+                2. Foque 100% no desenvolvedor. Seja telegráfico e extremamente conciso.
+                3. Máximo de 1800 caracteres.
 
-                DIRETRIZES DE RESPOSTA:
-                1. PÚBLICO-ALVO: Desenvolvedores de software. Use termos técnicos (tags, schema, boolean, string, etc).
-                2. TOM DE VOZ: Direto, como um colega de trabalho avisando outro ("Olha, mudou isso aqui...").
-                3. SEM ENROLAÇÃO: Ignore textos jurídicos ou introduções longas. Vá direto ao que impacta o XML.
-
-                FORMATO DA RESPOSTA (SIGA RIGOROSAMENTE):
-
-                # 📑 [Título da Alteração ou Campo Novo]
-                **O que mudou:** [Breve explicação técnica do impacto na rotina do sistema]
-                **Caminho no XML (XPath):** `[Ex: infNFe/det/prod/tagNova]`
-
-                **Exemplo de Implementação:**
-                '''xml
-                [Insira aqui um trecho de exemplo do XML formatado com a alteração aplicada]
-                '''
-
-                **Regras de Rejeição (Se houver):**
-                - [Código da Rejeição]: [Motivo resumido]
-
-                ---
-                (Use o separador --- entre cada alteração encontrada)
-
-                REGRAS ADICIONAIS:
-                - Se não houver alteração de layout (apenas prorrogação de prazo, por exemplo), responda apenas com um resumo curto.
-                - Use obrigatoriamente as crases triplas (''') para blocos de código XML para que fiquem visíveis no Discord.
-                - Mantenha a resposta total abaixo de 1800 caracteres para não quebrar o limite do chat.
+                FORMATO OBRIGATÓRIO (Use `---` entre alterações):
+                # 📑 [Nome da Tag/Campo]
+                **Impacto:** [Ação técnica exigida em 1 linha]
+                **XPath:** `[Caminho]`
+                ```xml
+                [Trecho XML curto com a alteração]
+                Rejeição: [Código] - [Motivo em 1 linha]
+                Nota: Se a NT for apenas prorrogação de prazo, responda com uma única frase.
             """
 
             # Botão de download dos arquivos

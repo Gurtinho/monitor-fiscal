@@ -1,7 +1,4 @@
-# cria a conexão com o sqlite
-
 from dbm import sqlite3
-
 
 class Database:
     def __init__(self, db_file):
