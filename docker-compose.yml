@@ -1,41 +1,29 @@
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb_bot
-    restart: always
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: sa1234
-    volumes:
-      - mongo_data:/data/db
 
-  # mongo-express:
-  #   image: mongo-express
-  #   container_name: mongo_express_gui
-  #   restart: always
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     ME_CONFIG_MONGODB_ADMINUSERNAME: root
-  #     ME_CONFIG_MONGODB_ADMINPASSWORD: sa1234
-  #     ME_CONFIG_MONGODB_URL: mongodb://root:sa1234@mongodb:27017/
-  #   depends_on:
-  #     - mongodb
+  database:
+    image: postgres:15-alpine
+    container_name: monitor_fiscal_db
+    restart: always
+    env_file: ./.env
+    ports:
+      - "${DATABASE_PORT}:5432"
+    environment:
+      POSTGRES_HOST: ${DATABASE_HOST}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_PORT: ${DATABASE_PORT}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   # bot:
   #   build: .
   #   container_name: discord_bot
   #   restart: always
   #   depends_on:
-  #     - mongodb
+  #     - database
   #   env_file:
   #     - .env
-  #   environment:
-  #     - MONGO_URL=mongodb://root:sa1234@mongodb:27017/
-  #   # volumes:
-  #   #   - .:/app
 
 volumes:
-  mongo_data:
+  postgres_data:

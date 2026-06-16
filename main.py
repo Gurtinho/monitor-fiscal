@@ -1,33 +1,35 @@
+import dotenv
+dotenv.load_dotenv()  # deve rodar antes de qualquer import que leia os.getenv()
+
 import discord
 import asyncio
 import uvicorn
-import dotenv
 import os
-from bot import ModBot
+
+from platforms.discord.bot import ModBot
+from services import repository
 from fastapi import FastAPI
 
 bot = ModBot()
 app = FastAPI()
-
-dotenv.load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD_ID = os.getenv('SERVER_ID')
 ENVIRONMENT = os.getenv('ENVIRONMENT')
 
+# Carrega as extensões (cogs) de comandos e eventos do Discord
 async def load_extensions():
-    commands, events = 0, 0
-    if os.path.exists('commands'):
-        for command in os.listdir('commands'):
-            if command.endswith('.py'):
-                commands += 1
-                await bot.load_extension(f'commands.{command[:-3]}')
-
-    if os.path.exists('events'):
-        for event in os.listdir('events'):
-            if event.endswith('.py'):
-                events += 1
-                await bot.load_extension(f'events.{event[:-3]}')
-    return commands, events
+    commands_count, events_count = 0, 0
+    for folder in ['commands', 'events']:
+        path = f'platforms/discord/{folder}'
+        if os.path.exists(path):
+            for f in os.listdir(path):
+                if f.endswith('.py') and not f.startswith('_'):
+                    await bot.load_extension(f'platforms.discord.{folder}.{f[:-3]}')
+                    if folder == 'commands':
+                        commands_count += 1
+                    else:
+                        events_count += 1
+    return commands_count, events_count
 
 @bot.event
 async def on_ready():
@@ -37,48 +39,34 @@ async def on_ready():
         await bot.tree.sync(guild=guild)
     else:
         await bot.tree.sync()
-    
     print(f"🚀 {bot.user} is online and ready!")
 
-# rotas da api
 @app.get("/healthcheck")
 async def healthcheck():
     return {"status": "online", "bot": str(bot.user)}
 
 @app.get("/status")
 async def status():
-    return {"status": "online", "bot": str(bot.user), "commands": len(bot.commands), "events": len(bot.events)}
-
-@app.get("/commands")
-async def commands():
-    return {"commands": [command.name for command in bot.commands]}
-
-@app.get("/events")
-async def events():
-    return {"events": [event.name for event in bot.events]}
-
-@app.get("/guilds")
-async def guilds():
-    return {"guilds": [guild.name for guild in bot.guilds]}
+    return {"status": "online", "bot": str(bot.user)}
 
 async def main():
-    # Carregar tudo primeiro
-    commands, events = await load_extensions()
-    print(f"Loaded {commands} commands and {events} events.")
+    # Inicia o banco de dados
+    await repository.init_db()
 
-    # API do bot
+    commands_count, events_count = await load_extensions()
+    print(f"Loaded {commands_count} commands and {events_count} events.")
+
     config = uvicorn.Config(app, host="0.0.0.0", port=8000, loop="asyncio")
     server = uvicorn.Server(config)
 
-    # Startando tudo
+    # Inicia o servidor e demais tarefas
     await asyncio.gather(
         server.serve(),
-        bot.start(TOKEN) 
+        bot.start(TOKEN)
     )
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        # Prevents messy errors when you press Ctrl+C
         pass
