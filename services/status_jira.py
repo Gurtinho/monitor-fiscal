@@ -1,6 +1,6 @@
 import aiohttp
-import asyncio
 from aiolimiter import AsyncLimiter
+import utils.log as log
 
 BASE_URL = "https://status.atlassian.com/api/v2"
 
@@ -8,6 +8,10 @@ BASE_URL = "https://status.atlassian.com/api/v2"
 limiter = AsyncLimiter(7, 60)
 
 async def checar_jira() -> dict:
+    """
+    Sempre retorna o mesmo formato de dict, com sucesso ou erro,
+    pra quem consome (Discord, Telegram, etc.) nunca precisar adivinhar o tipo.
+    """
     async with limiter:
         try:
             async with aiohttp.ClientSession() as session:
@@ -22,6 +26,7 @@ async def checar_jira() -> dict:
             ]
 
             return {
+                "erro": None,
                 "indicator": data["status"]["indicator"],
                 "description": data["status"]["description"],
                 "components": components_jira,
@@ -33,4 +38,10 @@ async def checar_jira() -> dict:
 
         except Exception as e:
             log.logging.error(f"Erro crítico na função checar jira: {e}")
-            return f"Erro de conexão: {e}"
+            return {
+                "erro": str(e),
+                "indicator": None,
+                "description": None,
+                "components": [],
+                "incidents": [],
+            }

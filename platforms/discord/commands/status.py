@@ -64,10 +64,16 @@ class Status(commands.Cog):
 
             if choice == "jira":
                 dados = await status_jira.checar_jira()
-                await interaction.followup.send(embed=_build_jira_embed(dados))
+                if dados["erro"]:
+                    await interaction.followup.send(f"⚠️ Não consegui verificar o status do Jira: {dados['erro']}")
+                else:
+                    await interaction.followup.send(embed=_build_jira_embed(dados))
             elif choice == "github":
                 dados = await status_github.checar_github()
-                await interaction.followup.send(embed=_build_github_embed(dados))
+                if dados["erro"]:
+                    await interaction.followup.send(f"⚠️ Não consegui verificar o status do Github: {dados['erro']}")
+                else:
+                    await interaction.followup.send(embed=_build_github_embed(dados))
             elif choice == "sefaz":
                 # dados = await status_sefaz.checar_sefaz()
                 # await interaction.followup.send(embed=_build_sefaz_embed(dados))

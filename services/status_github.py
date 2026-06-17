@@ -1,6 +1,6 @@
 import aiohttp
-import asyncio
 from aiolimiter import AsyncLimiter
+import utils.log as log
 
 BASE_URL = "https://www.githubstatus.com/api/v2"
 
@@ -8,6 +8,10 @@ BASE_URL = "https://www.githubstatus.com/api/v2"
 limiter = AsyncLimiter(7, 60)
 
 async def checar_github() -> dict:
+    """
+    Sempre retorna o mesmo formato de dict, com sucesso ou erro,
+    pra quem consome (Discord, Telegram, etc.) nunca precisar adivinhar o tipo.
+    """
     async with limiter:
         try:
             async with aiohttp.ClientSession() as session:
@@ -16,6 +20,7 @@ async def checar_github() -> dict:
                     data = await resp.json()
 
             return {
+                "erro": None,
                 "indicator": data["status"]["indicator"],
                 "description": data["status"]["description"],
                 "components": [
@@ -30,4 +35,10 @@ async def checar_github() -> dict:
 
         except Exception as e:
             log.logging.error(f"Erro crítico na função checar github: {e}")
-            return f"Erro de conexão: {e}"
+            return {
+                "erro": str(e),
+                "indicator": None,
+                "description": None,
+                "components": [],
+                "incidents": [],
+            }

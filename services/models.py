@@ -9,7 +9,7 @@ class Documento(Base):
     __tablename__ = "documentos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    tipo: Mapped[str] = mapped_column(String(10))        # NFe, CTe, MDFe, NFCe
+    tipo: Mapped[str] = mapped_column(String(10)) # NFe, CTe, MDFe, NFCe
     texto: Mapped[str] = mapped_column(Text)
     url: Mapped[str] = mapped_column(Text, unique=True)
     descoberto_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
