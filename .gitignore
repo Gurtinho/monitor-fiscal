@@ -5,4 +5,5 @@ cache
 venv
 .venv
 .temp
+.pytest_cache
 __pycache__/

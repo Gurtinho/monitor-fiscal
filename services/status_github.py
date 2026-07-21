@@ -8,10 +8,6 @@ BASE_URL = "https://www.githubstatus.com/api/v2"
 limiter = AsyncLimiter(7, 60)
 
 async def checar_github() -> dict:
-    """
-    Sempre retorna o mesmo formato de dict, com sucesso ou erro,
-    pra quem consome (Discord, Telegram, etc.) nunca precisar adivinhar o tipo.
-    """
     async with limiter:
         try:
             async with aiohttp.ClientSession() as session:

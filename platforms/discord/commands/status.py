@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from services import status_jira, status_github
+from services import status_jira, status_github, status_sefaz
 
 CORES = {
     "none": discord.Color.green(),
@@ -50,6 +50,34 @@ def _build_github_embed(dados: dict) -> discord.Embed:
     return embed
 
 
+def _build_sefaz_embed(dados: dict) -> discord.Embed:
+    tipo = dados.get("tipo", "NFe")
+    embed = discord.Embed(
+        title=f"Status — SEFAZ ({tipo})",
+        description=f"**{dados['description']}**",
+        color=CORES.get(dados["indicator"], discord.Color.blurple()),
+        timestamp=discord.utils.utcnow()
+    )
+
+    components = dados.get("components", [])
+    if not components:
+        embed.add_field(name="UFs", value="Nenhum dado encontrado", inline=False)
+        embed.set_footer(text="nfe.fazenda.gov.br")
+        return embed
+
+    # Mostra só estados com problema; se tudo ok mostra resumo
+    down = [c for c in components if c["status"] != "operational"]
+    if down:
+        for comp in down[:25]:  # limite de 25 fields do Discord
+            embed.add_field(name=comp["name"], value="🔴 Indisponível", inline=True)
+    else:
+        ufs = " · ".join(c["name"] for c in components)
+        embed.add_field(name="Todos operacionais", value=ufs or "—", inline=False)
+
+    embed.set_footer(text="nfe.fazenda.gov.br")
+    return embed
+
+
 
 class Status(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -68,18 +96,49 @@ class Status(commands.Cog):
                     await interaction.followup.send(f"⚠️ Não consegui verificar o status do Jira: {dados['erro']}")
                 else:
                     await interaction.followup.send(embed=_build_jira_embed(dados))
+
             elif choice == "github":
                 dados = await status_github.checar_github()
                 if dados["erro"]:
                     await interaction.followup.send(f"⚠️ Não consegui verificar o status do Github: {dados['erro']}")
                 else:
                     await interaction.followup.send(embed=_build_github_embed(dados))
+
             elif choice == "sefaz":
-                # dados = await status_sefaz.checar_sefaz()
-                # await interaction.followup.send(embed=_build_sefaz_embed(dados))
-                await interaction.followup.send("Status da Sefaz ainda não implementado!")
+                await _enviar_status_sefaz(interaction)
+
             else:
                 await interaction.followup.send("Ainda não implementado para essa opção!")
+
+        async def _enviar_status_sefaz(interaction: discord.Interaction):
+            """Sub-select para escolher o tipo de documento SEFAZ."""
+
+            async def sefaz_tipo_callback(inter: discord.Interaction):
+                tipo = inter.data['values'][0]
+                await inter.response.defer()
+                dados = await status_sefaz.checar_sefaz(tipo)
+                if dados["erro"]:
+                    await inter.followup.send(f"⚠️ Não consegui verificar o status da SEFAZ: {dados['erro']}")
+                else:
+                    await inter.followup.send(embed=_build_sefaz_embed(dados))
+
+            tipo_select = discord.ui.Select(placeholder="Selecione o tipo de documento")
+            tipo_select.options = [
+                discord.SelectOption(label="NF-e", value="NFe", description="Nota Fiscal Eletrônica"),
+                discord.SelectOption(label="CT-e", value="CTe", description="Conhecimento de Transporte Eletrônico"),
+                discord.SelectOption(label="NFC-e", value="NFCe", description="Nota Fiscal de Consumidor Eletrônica"),
+                discord.SelectOption(label="MDF-e", value="MDFe", description="Manifesto Eletrônico de Documentos Fiscais"),
+            ]
+            tipo_select.callback = sefaz_tipo_callback
+
+            tipo_view = discord.ui.View()
+            tipo_view.add_item(tipo_select)
+
+            await interaction.followup.send(
+                "Qual tipo de documento deseja verificar?",
+                view=tipo_view,
+                ephemeral=True
+            )
 
         selections = discord.ui.Select(placeholder='Selecione uma opção')
         selections.options = [

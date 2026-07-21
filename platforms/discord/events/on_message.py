@@ -13,7 +13,7 @@ class OnMessage(commands.Cog):
             return
 
         if 'kkk' in message.content.lower():
-            if random.randint(1, 3) == 1:
+            if random.randint(1, 10) == 1:
                 await message.add_reaction('🤣')
 
 async def setup(bot: commands.Bot):

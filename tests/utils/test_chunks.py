@@ -37,7 +37,7 @@ def test_todos_os_chunks_tem_no_maximo_1800_chars():
 
 def test_conteudo_nao_e_perdido_na_divisao():
     # A soma dos chunks deve ter o mesmo conteúdo do original
-    texto = "palavra " * 500                       # 4000 chars
+    texto = "palavra " * 500 # 4000 chars
     resultado = dividir_texto(texto)
     reconstruido = "".join(resultado)
     assert reconstruido.replace(" ", "") == texto.replace(" ", "")
@@ -70,9 +70,9 @@ def test_sem_titulo_corta_no_limite():
 # roda o mesmo teste com cada conjunto de parâmetros.
 
 @pytest.mark.parametrize("limite,esperado_chunks", [
-    (100,  10),   # limite pequeno → muitos chunks
-    (500,   2),   # limite médio   → poucos chunks
-    (2000,  1),   # limite grande  → um chunk só
+    (100, 10), # limite pequeno → muitos chunks
+    (500, 2), # limite médio → poucos chunks
+    (2000, 1), # limite grande → um chunk só
 ])
 def test_limite_customizado(limite, esperado_chunks):
     texto = "z" * 1000
