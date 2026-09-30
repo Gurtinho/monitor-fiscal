@@ -1,0 +1,1 @@
+antes de implementar, valide e retorne. de preferencia bloco a bloco podendo assim continuar depois de ponto a ponto.
