@@ -7,3 +7,4 @@ venv
 .temp
 .pytest_cache
 __pycache__/
+monitor_fiscal.log
